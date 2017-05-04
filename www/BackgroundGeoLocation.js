@@ -23,12 +23,13 @@ module.exports = {
             notificationText    = config.notificationText || "ENABLED";
             activityType        = config.activityType || "OTHER";
             stopOnTerminate     = config.stopOnTerminate || false;
+			useCallback			= config.useCallback || false;
 
         exec(success || function() {},
              failure || function() {},
              'BackgroundGeoLocation',
              'configure',
-             [params, headers, url, stationaryRadius, distanceFilter, locationTimeout, desiredAccuracy, debug, notificationTitle, notificationText, activityType, stopOnTerminate]
+             [params, headers, url, stationaryRadius, distanceFilter, locationTimeout, desiredAccuracy, debug, notificationTitle, notificationText, activityType, stopOnTerminate, useCallback]
         );
     },
     start: function(success, failure, config) {
@@ -101,6 +102,7 @@ module.exports = {
             'addStationaryRegionListener',
             []);
     },
+	
     apply: function(destination, source) {
         source = source || {};
         for (var property in source) {
@@ -109,5 +111,49 @@ module.exports = {
             }
         }
         return destination;
-    }
+    },
+	
+    onLocation: function(success, failure) {
+        if (typeof(success) !== 'function') {
+            throw "A callback must be provided";
+        }
+        
+        var me = this;
+		/*
+        var mySuccess = function(params) {
+            var location    = params.location || params;
+            var taskId      = params.taskId || 'task-id-undefined';
+            // Transform timestamp to Date instance.
+            if (location.timestamp) {
+                location.timestamp = new Date(location.timestamp);
+            }
+            me._runBackgroundTask(taskId, function() {
+                success.call(this, location, taskId);
+            });
+        }
+		*/
+        exec(success,
+             failure || function() {},
+             'BackgroundGeolocation',
+             'addLocationListener',
+             []
+        );
+    },
+    _runBackgroundTask: function(taskId, callback) {
+        var me = this;
+        try {
+            callback.call(this);
+        } catch(e) {
+            console.log("*************************************************************************************");
+            console.error("BackgroundGeolocation caught a Javascript Exception in your application code");
+            console.log(" while running in a background thread.  Auto-finishing background-task:", taskId);
+            console.log(" to prevent application crash");
+            console.log("*************************************************************************************");
+            console.log("STACK:\n", e.stack);
+            console.error(e);
+
+            // And finally, here's our raison d'etre:  catching the error in order to ensure background-task is completed.
+            //this.error(taskId, e.message);
+        }
+    }	
 };

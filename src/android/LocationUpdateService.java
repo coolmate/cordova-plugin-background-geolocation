@@ -3,6 +3,8 @@ package com.zencity.cordova.bgloc;
 import java.util.List;
 import java.util.Iterator;
 
+import org.apache.cordova.CallbackContext;
+import org.apache.cordova.PluginResult;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.entity.StringEntity;
@@ -10,6 +12,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import com.upstream.UCallback;
 import com.zencity.cordova.bgloc.data.DAOFactory;
 import com.zencity.cordova.bgloc.data.LocationDAO;
 
@@ -96,6 +99,8 @@ public class LocationUpdateService extends Service implements LocationListener {
     private String notificationText = "ENABLED";
     private Boolean stopOnTerminate;
 
+    private Boolean useCallback = false;
+
     private ToneGenerator toneGenerator;
 
     private Criteria criteria;
@@ -180,6 +185,10 @@ public class LocationUpdateService extends Service implements LocationListener {
             isDebugging = Boolean.parseBoolean(intent.getStringExtra("isDebugging"));
             notificationTitle = intent.getStringExtra("notificationTitle");
             notificationText = intent.getStringExtra("notificationText");
+
+            useCallback = Boolean.parseBoolean(intent.getStringExtra("useCallback"));
+
+
 
             // Build a Notification required for running service in foreground.
             Intent main = new Intent(this, BackgroundGpsPlugin.class);
@@ -412,14 +421,47 @@ public class LocationUpdateService extends Service implements LocationListener {
         }
         // Go ahead and cache, push to server
         lastLocation = location;
-        persistLocation(location);
 
-        if (this.isNetworkConnected()) {
-            Log.d(TAG, "Scheduling location network post");
-            schedulePostLocations();
-        } else {
-            Log.d(TAG, "Network unavailable, waiting for now");
+        if(!useCallback) {
+            persistLocation(location);
+
+            if (this.isNetworkConnected()) {
+                Log.d(TAG, "Scheduling location network post");
+                if (isDebugging) {
+                    Toast.makeText(this, "Scheduling location network post", Toast.LENGTH_LONG).show();
+                }
+                schedulePostLocations();
+            } else {
+                Log.d(TAG, "Network unavailable, waiting for now");
+                if (isDebugging) {
+                    Toast.makeText(this, "Network unavailable, waiting for now", Toast.LENGTH_LONG).show();
+                }
+            }
+        }else {
+            JSONObject locationJson = new JSONObject();
+            try {
+                locationJson.put("latitude", location.getLatitude());
+                locationJson.put("longitude", location.getLongitude());
+                locationJson.put("accuracy", location.getAccuracy());
+                locationJson.put("speed", location.getSpeed());
+                locationJson.put("bearing", location.getBearing());
+                locationJson.put("altitude", location.getAltitude());
+                locationJson.put("recorded_at", "");
+            } catch (Exception ex) {
+
+            }
+            PluginResult result = new PluginResult(PluginResult.Status.OK, locationJson);
+            result.setKeepCallback(true);
+            if(UCallback.callbackContexts != null && UCallback.callbackContexts.size() > 0) {
+                for (CallbackContext callback : UCallback.callbackContexts) {
+                    callback.sendPluginResult(result);
+                }
+            }
         }
+
+
+
+
     }
 
     /**

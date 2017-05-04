@@ -11,6 +11,12 @@ import android.content.Intent;
 import android.location.LocationManager;
 import android.util.Log;
 
+import com.upstream.UCallback;
+
+import java.util.List;
+import java.util.ArrayList;
+
+
 public class BackgroundGpsPlugin extends CordovaPlugin {
     private static final String TAG = "BackgroundGpsPlugin";
 
@@ -18,6 +24,10 @@ public class BackgroundGpsPlugin extends CordovaPlugin {
     public static final String ACTION_STOP = "stop";
     public static final String ACTION_CONFIGURE = "configure";
     public static final String ACTION_SET_CONFIG = "setConfig";
+    public static final String ACTION_ADD_LOCATION_LISTENER = "addLocationListener";
+
+    private List<CallbackContext> locationCallbacks = new ArrayList<CallbackContext>();
+
 
     private Intent updateServiceIntent;
 
@@ -34,6 +44,8 @@ public class BackgroundGpsPlugin extends CordovaPlugin {
     private String notificationTitle = "Background tracking";
     private String notificationText = "ENABLED";
     private String stopOnTerminate = "false";
+
+    private String useCallback = "false";
 
     public boolean execute(String action, JSONArray data, CallbackContext callbackContext) {
         Activity activity = this.cordova.getActivity();
@@ -58,6 +70,7 @@ public class BackgroundGpsPlugin extends CordovaPlugin {
                 updateServiceIntent.putExtra("notificationTitle", notificationTitle);
                 updateServiceIntent.putExtra("notificationText", notificationText);
                 updateServiceIntent.putExtra("stopOnTerminate", stopOnTerminate);
+                updateServiceIntent.putExtra("useCallback", useCallback);
 
                 activity.startService(updateServiceIntent);
                 isEnabled = true;
@@ -71,8 +84,8 @@ public class BackgroundGpsPlugin extends CordovaPlugin {
             result = true;
             try {
                 // Params.
-                //    0       1       2           3               4                5               6            7           8                9               10              11
-                //[params, headers, url, stationaryRadius, distanceFilter, locationTimeout, desiredAccuracy, debug, notificationTitle, notificationText, activityType, stopOnTerminate]
+                //    0       1       2           3               4                5               6            7           8                9               10              11             12
+                //[params, headers, url, stationaryRadius, distanceFilter, locationTimeout, desiredAccuracy, debug, notificationTitle, notificationText, activityType, stopOnTerminate, useCallback]
                 this.params = data.getString(0);
                 this.headers = data.getString(1);
                 this.url = data.getString(2);
@@ -84,6 +97,8 @@ public class BackgroundGpsPlugin extends CordovaPlugin {
                 this.notificationTitle = data.getString(8);
                 this.notificationText = data.getString(9);
                 this.stopOnTerminate = data.getString(11);
+                this.useCallback =data.getString(12);
+
             } catch (JSONException e) {
                 callbackContext.error("authToken/url required as parameters: " + e.getMessage());
             }
@@ -91,9 +106,20 @@ public class BackgroundGpsPlugin extends CordovaPlugin {
             result = true;
             // TODO reconfigure Service
             callbackContext.success();
+        } else if (ACTION_ADD_LOCATION_LISTENER.equalsIgnoreCase(action)) {
+            result = true;
+            addLocationListener(callbackContext);
+            //updateServiceIntent.putExtra("locationCallbacks", this.locationCallbacks);
+            //updateServiceIntent.putParcelableArrayListExtra("locationCallbacks",this.locationCallbacks);
+            //updateServiceIntent.putExtra("MESSAGE", new Messager());
         }
 
         return result;
+    }
+
+    private void addLocationListener(CallbackContext callbackContext) {
+        UCallback.callbackContexts.add(callbackContext);
+        //locationCallbacks.add(callbackContext);
     }
 
     /**
