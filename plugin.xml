@@ -13,8 +13,8 @@
         <engine name="cordova" version=">=3.0.0" />
     </engines>
 
-    <dependency id="org.apache.cordova.geolocation" />
-    <dependency id="org.apache.cordova.dialogs" />
+    <dependency id="https://github.com/apache/cordova-plugin-geolocation" />
+    <dependency id="https://github.com/apache/cordova-plugin-dialogs" />
 
     <js-module src="www/BackgroundGeoLocation.js" name="BackgroundGeoLocation">
         <clobbers target="plugins.backgroundGeoLocation" />
