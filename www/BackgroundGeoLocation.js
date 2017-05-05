@@ -138,22 +138,5 @@ module.exports = {
              'addLocationListener',
              []
         );
-    },
-    _runBackgroundTask: function(taskId, callback) {
-        var me = this;
-        try {
-            callback.call(this);
-        } catch(e) {
-            console.log("*************************************************************************************");
-            console.error("BackgroundGeolocation caught a Javascript Exception in your application code");
-            console.log(" while running in a background thread.  Auto-finishing background-task:", taskId);
-            console.log(" to prevent application crash");
-            console.log("*************************************************************************************");
-            console.log("STACK:\n", e.stack);
-            console.error(e);
-
-            // And finally, here's our raison d'etre:  catching the error in order to ensure background-task is completed.
-            //this.error(taskId, e.message);
-        }
-    }	
+    }
 };
